@@ -1,0 +1,192 @@
+CREATE DATABASE smart_factory;
+USE smart_factory;
+CREATE TABLE sensor_data (
+    timestamp DATETIME,
+    machine_id VARCHAR(10),
+    machine_profile VARCHAR(30),
+    temperature DECIMAL(10,2),
+    vibration DECIMAL(10,2),
+    pressure DECIMAL(10,2),
+    rpm DECIMAL(10,2),
+    current DECIMAL(10,2),
+    operating_hours DECIMAL(10,2),
+    downtime_minutes INT,
+    maintenance_status VARCHAR(30),
+    failure INT,
+    anomaly INT
+);
+USE smart_factory;
+
+SELECT *
+FROM sensor_data
+LIMIT 5;
+--- Query 1: Normal machines
+SELECT *
+FROM sensor_data
+WHERE maintenance_status = 'Normal'; 
+
+--- Query 2: High temperature machines
+SELECT machine_id, temperature, vibration
+FROM sensor_data
+WHERE temperature > 80;
+
+--- Query 3: Failed machines
+SELECT machine_id, temperature, vibration, failure
+FROM sensor_data
+WHERE failure = 1;
+
+--- Query 4: Anomaly readings 
+SELECT machine_id, temperature, vibration, anomaly
+FROM sensor_data
+WHERE anomaly = -1;
+
+--- 1. ORDER BY — Sorting
+SELECT machine_id, temperature, vibration
+FROM sensor_data
+ORDER BY temperature DESC;
+
+--- 2. DISTINCT — Unique values
+SELECT DISTINCT machine_profile
+FROM sensor_data;
+
+--- 3. LIMIT — Top 5 readings
+SELECT machine_id, temperature, vibration
+FROM sensor_data
+ORDER BY temperature DESC
+LIMIT 5;
+
+--- Next: COUNT, AVG, SUM
+-- Total sensor readings
+SELECT COUNT(*) AS total_readings
+FROM sensor_data;
+
+-- Average temperature
+SELECT ROUND(AVG(temperature), 2) AS avg_temperature
+FROM sensor_data;
+
+-- Total downtime
+SELECT SUM(downtime_minutes) AS total_downtime
+FROM sensor_data;
+
+-- Total Failures
+ SELECT COUNT(*) AS total_failures
+FROM sensor_data
+WHERE failure = 1;
+
+SHOW COLUMNS FROM sensor_data;
+
+SELECT anomaly, COUNT(*) AS total
+FROM sensor_data
+GROUP BY anomaly;
+
+SELECT COUNT(*) AS anomaly_count
+FROM sensor_data
+WHERE anomaly = -1;
+
+--- GROUP BY
+SELECT
+    machine_profile,
+    COUNT(*) AS total_readings,
+    SUM(failure) AS total_failures,
+    ROUND(AVG(temperature), 2) AS avg_temperature,
+    SUM(downtime_minutes) AS total_downtime
+FROM sensor_data
+GROUP BY machine_profile
+ORDER BY total_failures DESC;
+
+-- HAVING 
+SELECT
+    machine_profile,
+    SUM(failure) AS total_failures
+FROM sensor_data
+GROUP BY machine_profile
+HAVING SUM(failure) > 50
+ORDER BY total_failures DESC;
+
+-- CASE WHEN
+SELECT
+    machine_profile,
+    SUM(failure) AS total_failures,
+    CASE
+        WHEN SUM(failure) >= 200 THEN 'High Priority'
+        WHEN SUM(failure) >= 100 THEN 'Medium Priority'
+        ELSE 'Low Priority'
+    END AS maintenance_priority
+FROM sensor_data
+GROUP BY machine_profile
+ORDER BY total_failures DESC;
+
+-- JOIN
+-- Step 1 — Create a second table
+CREATE TABLE machine_details (
+    machine_id VARCHAR(10) PRIMARY KEY,
+    location VARCHAR(50),
+    technician VARCHAR(50)
+);
+ 
+ -- Step 2 — Insert sample data
+ INSERT INTO machine_details
+VALUES
+('M001', 'Factory A', 'Arun'),
+('M002', 'Factory A', 'Kumar'),
+('M003', 'Factory B', 'Priya'),
+('M004', 'Factory B', 'Ravi'),
+('M005', 'Factory C', 'Divya');
+
+-- Step 3 — Check the data
+SELECT * FROM machine_details;
+
+-- INNER JOIN
+SELECT
+    s.machine_id,
+    s.machine_profile,
+    s.temperature,
+    m.location,
+    m.technician
+FROM sensor_data s
+INNER JOIN machine_details m
+    ON s.machine_id = m.machine_id;
+    
+  -- LEFT JOIN
+  SELECT
+    s.machine_id,
+    s.machine_profile,
+    m.location,
+    m.technician
+FROM sensor_data s
+LEFT JOIN machine_details m
+    ON s.machine_id = m.machine_id;
+    
+ -- SQL final project query
+ SELECT
+    machine_id,
+    COUNT(*) AS total_readings,
+    SUM(failure) AS total_failures,
+    ROUND(AVG(temperature), 2) AS avg_temperature,
+    SUM(downtime_minutes) AS total_downtime
+FROM sensor_data
+GROUP BY machine_id
+ORDER BY total_failures DESC
+LIMIT 5;
+
+-- Final SQL practice — Failure Rate %
+SELECT
+    machine_id,
+    COUNT(*) AS total_readings,
+    SUM(failure) AS total_failures,
+    ROUND(
+        SUM(failure) * 100.0 / COUNT(*), 2
+    ) AS failure_rate_pct
+FROM sensor_data
+GROUP BY machine_id
+ORDER BY failure_rate_pct DESC
+LIMIT 5;
+SELECT
+    COUNT(*) AS total_readings,
+    SUM(failure) AS total_failures,
+    ROUND(SUM(failure) * 100.0 / COUNT(*), 2) AS failure_rate,
+    SUM(downtime_minutes) AS total_downtime
+FROM sensor_data;
+
+
+
